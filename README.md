@@ -29,6 +29,16 @@ Every time a commit is pushed to the `main` branch, the following steps are trig
 ## 📸 Screenshots
 <img width="745" height="104" alt="image" src="https://github.com/user-attachments/assets/76ec2c50-d120-488b-86f6-0cb0aa6b6ae4" />
 
+
+----------------------------------------------------------------------------------------------------------------------------------
+
+
+<img width="3224" height="327" alt="image" src="https://github.com/user-attachments/assets/50b5f7fe-e1b1-4419-9f1e-c650e3eb2037" />
+----------------------------------------------------------------------------------------------------------------------------------
+
+<img width="3525" height="1888" alt="image" src="https://github.com/user-attachments/assets/20c5d759-b4e3-4333-9d98-7e88ea15d959" />
+
+
 ## 🚧 Challenges & Troubleshooting
 Building this pipeline involved overcoming several real-world DevOps challenges:
 
