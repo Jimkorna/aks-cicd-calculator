@@ -1,0 +1,93 @@
+# ==========================================
+# PART 1: DEPLOYMENT (Application Pods)
+# ==========================================
+# This section tells Kubernetes how to run your application containers.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # The name of the deployment inside the Kubernetes cluster.
+  # [TEMPLATE NOTE] Change "node-api" to your new project's name (e.g., "python-backend").
+  name: node-api
+spec:
+  # How many identical copies (pods) of your application should run simultaneously.
+  # [TEMPLATE NOTE] Increase this number if you expect high traffic.
+  replicas: 2
+  selector:
+    matchLabels:
+      # This label tells the deployment which pods it manages.
+      # [TEMPLATE NOTE] Change "node-api" to match your new project's name.
+      app: node-api
+  template:
+    metadata:
+      labels:
+        # [TEMPLATE NOTE] This MUST match the selector label above.
+        app: node-api
+    spec:
+      # Credentials for pulling images from a private registry (if applicable).
+      # [TEMPLATE NOTE] If using AKS Managed Identity (like we did with OpenTofu), this is often optional, but good to keep if using standard secrets.
+      imagePullSecrets:
+      - name: acr-secret
+      containers:
+      - name: node-api
+        # The Docker image to pull and run.
+        # [TEMPLATE NOTE] CRITICAL: Update the registry prefix (myregistry58549) and the image name (node-api:latest) for your new project.
+        image: myregistry58549.azurecr.io/node-api:latest
+        ports:
+        # The port your application listens on inside the container.
+        # [TEMPLATE NOTE] This MUST match the port in your application code (server.js) and the EXPOSE instruction in your Dockerfile.
+        - containerPort: 8080
+        
+        # Resource requests and limits to prevent the container from consuming all node resources.
+        # [TEMPLATE NOTE] Adjust these if your new application requires more CPU or Memory (e.g., a heavy Java app might need memory: "512Mi").
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+            
+        # Liveness Probe: Checks if the container is still running properly. If it fails, Kubernetes restarts the container.
+        livenessProbe:
+          httpGet:
+            # [TEMPLATE NOTE] Make sure your new application code has this exact route defined for health checking.
+            path: /health
+            # [TEMPLATE NOTE] This must match your containerPort.
+            port: 8080
+          initialDelaySeconds: 15
+          
+        # Readiness Probe: Checks if the container is ready to receive internet traffic.
+        readinessProbe:
+          httpGet:
+            # [TEMPLATE NOTE] Same as livenessProbe, ensure the path exists in your code.
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+
+---
+# ==========================================
+# PART 2: SERVICE (Networking / Load Balancer)
+# ==========================================
+# This section exposes your deployment to the outside world.
+
+apiVersion: v1
+kind: Service
+metadata:
+  # The name of the service inside the cluster.
+  # [TEMPLATE NOTE] Change "node-api-svc" to match your new project.
+  name: node-api-svc
+spec:
+  # 'LoadBalancer' requests a public IP address from Azure so the app is accessible from the internet.
+  # [TEMPLATE NOTE] Change to 'ClusterIP' if you want the app to be internal only (not exposed to the internet).
+  type: LoadBalancer
+  ports:
+  # The external port exposed to the internet (80 is standard HTTP).
+  - port: 80
+    # The internal port your application is listening on.
+    # [TEMPLATE NOTE] This MUST match the 'containerPort' defined in the Deployment above.
+    targetPort: 8080
+  selector:
+    # This connects the Service to the Deployment.
+    # [TEMPLATE NOTE] CRITICAL: This MUST match the 'app' label defined in the Deployment (e.g., "node-api"). If it doesn't match, you will get a public IP, but it will show "Connection Refused".
+    app: node-api

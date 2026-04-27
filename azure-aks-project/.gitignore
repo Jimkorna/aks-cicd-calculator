@@ -1,0 +1,20 @@
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+*.tfvars
+*.tfvars.json
+
+# --- Node.js ---
+node_modules/
+npm-debug.log*
+
+# --- Secrets & Environment ---
+.env
+
+# --- OS & IDE files ---
+.DS_Store
+.vscode/
+.idea/
+*.log

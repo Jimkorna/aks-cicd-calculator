@@ -1,0 +1,67 @@
+# .github/workflows/deploy.yml
+
+# Name of the automation workflow.
+# [TEMPLATE NOTE] Change this to match your project's name.
+name: CI/CD Pipeline for AKS
+
+# Defines the events that trigger the workflow.
+on:
+  push:
+    branches: [ main ] # Only triggers when code is pushed to the 'main' branch.
+    # [TEMPLATE NOTE] Add other branches if you want to deploy from different environments.
+
+# Required permissions for OIDC authentication with Azure.
+# [TEMPLATE NOTE] Do not change this; it's required for secure, passwordless login.
+permissions:
+  id-token: write
+  contents: read
+
+# Defines the sequence of tasks to run.
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest # The type of virtual machine the runner uses.
+    
+    steps:
+    # Step 1: Downloads the source code from the repository to the runner.
+    - name: 1. Check out the code
+      uses: actions/checkout@v3
+
+    # Step 2: Authenticates with Azure using the OIDC protocol and secrets.
+    # [TEMPLATE NOTE] Ensure AZURE_CLIENT_ID, AZURE_TENANT_ID, and AZURE_SUBSCRIPTION_ID are set in GitHub Secrets.
+    - name: 2. Log in to Azure
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    # Step 3: Authenticates the Docker CLI with your Azure Container Registry.
+    # [TEMPLATE NOTE] Change 'myregistry58549' to your new ACR name.
+    - name: 3. Log in to Azure Container Registry (ACR)
+      run: az acr login --name myregistry58549
+
+    # Step 4: Builds the Docker image and pushes it to the registry.
+    # [TEMPLATE NOTE] Change 'azure-aks-project' to your subfolder name if different.
+    # [TEMPLATE NOTE] Change 'myregistry58549.azurecr.io/node-api' to your new registry/image name.
+    - name: 4. Build and Push Docker Image
+      run: |
+        cd azure-aks-project
+        docker build -t myregistry58549.azurecr.io/node-api:latest .
+        docker push myregistry58549.azurecr.io/node-api:latest
+
+    # Step 5: Sets the context for kubectl to talk to your specific AKS cluster.
+    # [TEMPLATE NOTE] Update 'resource-group' and 'cluster-name' for your new project.
+    - name: 5. Connect to Azure Kubernetes Service (AKS)
+      uses: azure/aks-set-context@v3
+      with:
+        resource-group: aks-practice-rg
+        cluster-name: practice-aks
+
+    # Step 6: Applies the Kubernetes manifests and restarts the deployment to use the new image.
+    # [TEMPLATE NOTE] Change 'azure-aks-project' and the path to 'deployment.yaml' if your structure changes.
+    # [TEMPLATE NOTE] Change 'node-api' to the name of your deployment in the k8s file.
+    - name: 6. Deploy to AKS
+      run: |
+        cd azure-aks-project
+        kubectl apply -f k8s/deployment.yaml
+        kubectl rollout restart deployment node-api
